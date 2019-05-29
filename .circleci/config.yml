@@ -10,7 +10,6 @@ jobs:
     steps:
       - checkout
       - setup_system
-      - setup_nodejs
       - setup_rust
       - run:
           name: Updating PATH and Define Environment Variable at Runtime
@@ -55,34 +54,19 @@ jobs:
           paths:
             - "./api_tests/node_modules"
 
-
 commands:
   setup_system:
     steps:
       - run:
           name:  "Setup system environment"
           command: |
-            wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
+            curl -sL https://dl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
             curl -sL https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
+            curl -sL https://deb.nodesource.com/gpgkey/nodesource.gpg.key | sudo apt-key add -
             echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
+            echo "deb https://deb.nodesource.com/node_10.x/ trusty main" | sudo tee /etc/apt/sources.list.d/node_10.list
             sudo apt-get update
-            sudo apt-get install -y libzmq3-dev
-  setup_nodejs:
-    steps:
-      - run:
-          name:  "Install nodejs"
-          command: |
-            set +e
-            curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.5/install.sh | bash
-            export NVM_DIR="/opt/circleci/.nvm"
-            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-            nvm install v10.14.2
-            nvm alias default v10.14.2
-
-            # Each step uses the same `$BASH_ENV`, so need to modify it
-            echo 'export NVM_DIR="/opt/circleci/.nvm"' >> $BASH_ENV
-            echo "[ -s \"$NVM_DIR/nvm.sh\" ] && . \"$NVM_DIR/nvm.sh\"" >> $BASH_ENV
-            sudo apt-get install yarn
+            sudo apt-get install -y nodejs=10.* yarn libzmq3-dev
   setup_rust:
     steps:
       - run:
