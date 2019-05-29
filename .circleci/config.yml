@@ -65,6 +65,7 @@ commands:
             curl -sL https://deb.nodesource.com/gpgkey/nodesource.gpg.key | sudo apt-key add -
             echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
             echo "deb https://deb.nodesource.com/node_10.x/ trusty main" | sudo tee /etc/apt/sources.list.d/node_10.list
+            whereis node
             sudo apt-get update
             sudo apt-get install -y nodejs=10.* yarn libzmq3-dev
   setup_rust:
