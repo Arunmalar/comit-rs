@@ -10,49 +10,44 @@ jobs:
     steps:
       - checkout
       - setup_system
-      - setup_rust
-      - run:
-          name: Updating PATH and Define Environment Variable at Runtime
-          # Define variables that need interpolation
-          # As CircleCI starts a new shell for each `run` declaration, we need to export cargo home to $BASH_ENV
-          command: |
-            echo 'export PATH=$HOME/.cargo/bin:$HOME/.local/bin:$PATH' >> $BASH_ENV
       - print_current_versions
-      - run:
-          name: Check formatting
-          command: cargo make check-rs-format
+      - restore_cache:
+          keys:
+            - cargo-{{ .Branch }}-{{ checksum "rust-toolchain" }}
+            - cargo-{{ .Branch }}-
+            - cargo
       - restore_cache:
           keys:
             # Find a cache corresponding to this specific Cargo.lock checksum
-            # Find the most recently generated cache
-            - dependency-rs-sccache-{{ checksum "Cargo.lock" }}
-            - dependency-rs-sccache-
-      - restore_cache:
-          keys:
+            # If we can't find one, don't restore anything. This is slower for build where we change the lock file but at least it prevents us from piling up old stuff in the cached target/ folder.
             - dependency-rs-cache-{{ checksum "Cargo.lock" }}
-            - dependency-rs-cache-
       - restore_cache:
           keys:
-            - dependency-js-cache-{{ checksum "./api_tests/package.json" }}
-            - dependency-js-cache-
+            - yarn-packages-v1-{{ .Branch }}-{{ checksum "api_tests/yarn.lock" }}
+            - yarn-packages-v1-{{ .Branch }}-
+            - yarn-packages-v1-
+      - setup_rust
+      - run:
+          name: Install cargo tools
+          command: which cargo-make || cargo install cargo-make
       - run:
           name: Build using cargo make
-          command: |
-            cargo --version
-            cargo make ci
+          command: cargo make ci
+      - store_artifacts:
+          path: api_tests/log
       - save_cache:
-          key: dependency-rs-sccache-{{ checksum "Cargo.lock" }}
           paths:
-            - "~/.cache/sccache"
+            - ~/.cargo
+          key: cargo-{{ .Branch }}-{{ checksum "rust-toolchain" }}
       - save_cache:
           key: dependency-rs-cache-{{ checksum "Cargo.lock" }}
           paths:
-            - "~/.cargo"
             - "./target"
       - save_cache:
-          key: dependency-js-cache-{{ checksum "./api_tests/package.json" }}
           paths:
-            - "./api_tests/node_modules"
+            - ~/.cache/yarn
+            - api_tests/node_modules
+          key: yarn-packages-v1-{{ .Branch }}-{{ checksum "api_tests/yarn.lock" }}
 
 commands:
   setup_system:
@@ -65,7 +60,6 @@ commands:
             curl -sL https://deb.nodesource.com/gpgkey/nodesource.gpg.key | sudo apt-key add -
             echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
             echo "deb https://deb.nodesource.com/node_10.x/ trusty main" | sudo tee /etc/apt/sources.list.d/node_10.list
-            whereis node
             sudo apt-get update
             sudo apt-get install -y nodejs=10.* yarn libzmq3-dev
   setup_rust:
@@ -74,7 +68,11 @@ commands:
           name:  "Setup rust environment"
           command: |
             curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain $(< rust-toolchain) && source $HOME/.cargo/env
-            which cargo-make || cargo install --debug cargo-make
+
+            # Define variables that need interpolation
+            # As CircleCI starts a new shell for each `run` declaration, we need to export cargo home to $BASH_ENV
+
+            echo 'export PATH=$HOME/.cargo/bin:$HOME/.local/bin:$PATH' >> $BASH_ENV
   print_current_versions:
     steps:
       - run:
