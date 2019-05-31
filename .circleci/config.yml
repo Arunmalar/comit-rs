@@ -20,7 +20,7 @@ jobs:
           keys:
             # Find a cache corresponding to this specific Cargo.lock checksum
             # If we can't find one, don't restore anything. This is slower for build where we change the lock file but at least it prevents us from piling up old stuff in the cached target/ folder.
-            - dependency-rs-cache-{{ checksum "Cargo.lock" }}
+            - target-folder-{{ checksum "Cargo.lock" }}
       - restore_cache:
           keys:
             - yarn-packages-v1-{{ .Branch }}-{{ checksum "api_tests/yarn.lock" }}
@@ -40,7 +40,7 @@ jobs:
             - ~/.cargo
           key: cargo-{{ .Branch }}-{{ checksum "rust-toolchain" }}
       - save_cache:
-          key: dependency-rs-cache-{{ checksum "Cargo.lock" }}
+          key: target-folder-{{ checksum "Cargo.lock" }}
           paths:
             - "./target"
       - save_cache:
